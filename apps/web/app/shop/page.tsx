@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import { Product } from '../providers';
 import { useAppContext } from '../providers';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://a2imitation-api.onrender.com';
+
 export default function ShopPage() {
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
@@ -52,7 +54,10 @@ export default function ShopPage() {
   useEffect(() => {
     const loadProducts = async () => {
       try {
-        const [categoriesResponse, productsResponse] = await Promise.all([fetch('/api/categories'), fetch('/api/products')]);
+        const [categoriesResponse, productsResponse] = await Promise.all([
+          fetch(`${API_BASE}/api/categories`),
+          fetch(`${API_BASE}/api/products`),
+        ]);
         const categoriesData = categoriesResponse.ok ? await categoriesResponse.json() : [];
         const productsData = productsResponse.ok ? await productsResponse.json() : [];
         setCollections(Array.isArray(categoriesData) ? categoriesData : []);

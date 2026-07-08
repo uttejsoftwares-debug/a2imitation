@@ -27,6 +27,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://a2imitation-api.onrender.com';
 
   useEffect(() => {
     if (!isAuthenticated || !user?.email) {
@@ -39,7 +40,7 @@ export default function OrdersPage() {
       setError('');
 
       try {
-        const response = await fetch(`/api/orders?email=${encodeURIComponent(user.email)}`);
+        const response = await fetch(`${API_BASE}/api/orders?email=${encodeURIComponent(user.email)}`);
         if (!response.ok) {
           throw new Error('Unable to load orders');
         }

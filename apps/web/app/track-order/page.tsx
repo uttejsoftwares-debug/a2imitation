@@ -6,6 +6,7 @@ export default function TrackOrderPage() {
   const [orderId, setOrderId] = useState('');
   const [status, setStatus] = useState<string | null>(null);
   const [message, setMessage] = useState('');
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://a2imitation-api.onrender.com';
 
   const handleTrack = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -15,7 +16,7 @@ export default function TrackOrderPage() {
     }
 
     try {
-      const response = await fetch(`/api/orders/${encodeURIComponent(orderId)}`);
+      const response = await fetch(`${API_BASE}/api/orders/${encodeURIComponent(orderId)}`);
       if (!response.ok) {
         setStatus(null);
         setMessage('Order not found. Please check the ID and try again.');
