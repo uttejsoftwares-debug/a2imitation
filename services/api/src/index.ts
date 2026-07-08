@@ -8,7 +8,7 @@ import fs from 'fs';
 import multer from 'multer';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, type Product } from '@prisma/client';
 import { buildFallbackProductResponse } from './adminProductResponse.js';
 
 dotenv.config();
@@ -516,7 +516,7 @@ app.post('/api/orders', async (req, res) => {
 
     const products = await prisma.product.findMany({ where: { id: { in: body.items.map((item) => item.productId) } }, include: { images: true } });
     const orderItems = body.items.map((item) => {
-      const product = products.find((p) => p.id === item.productId);
+      const product = products.find((p: Product) => p.id === item.productId);
       return {
         productId: item.productId,
         quantity: item.quantity,
