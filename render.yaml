@@ -40,3 +40,27 @@ services:
         sync: false
       - key: WHATSAPP_NUMBER
         sync: false
+
+  - type: web
+    name: a2imitation-web
+    env: node
+    rootDir: apps/web
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+      - key: API_INTERNAL_URL
+        sync: false
+
+  - type: web
+    name: a2imitation-admin
+    env: node
+    rootDir: apps/admin
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
