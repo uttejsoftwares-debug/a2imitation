@@ -3,7 +3,7 @@ services:
     name: a2imitation-api
     env: node
     rootDir: services/api
-    buildCommand: npm install && npx prisma generate && npm run build
+    buildCommand: npm install --include=dev && npx prisma generate && npm run build
     startCommand: npx prisma db push && npm run start
     envVars:
       - key: NODE_ENV
@@ -45,7 +45,7 @@ services:
     name: a2imitation-web
     env: node
     rootDir: apps/web
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm run start
     envVars:
       - key: NODE_ENV
@@ -59,7 +59,7 @@ services:
     name: a2imitation-admin
     env: node
     rootDir: apps/admin
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm run start
     envVars:
       - key: NODE_ENV
