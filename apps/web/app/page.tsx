@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from './providers';
 
-const API_BASE = '';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 type Category = { id: string; name: string; slug: string };
 type Product = {
