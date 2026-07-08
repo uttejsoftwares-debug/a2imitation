@@ -64,6 +64,13 @@ const buildWhatsappLink = (message: string) => {
   return `https://wa.me/${phone}?text=${text}`;
 };
 
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const CLIENT_BASE_URL = process.env.CLIENT_BASE_URL || 'http://localhost:3000';
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || `${CLIENT_BASE_URL}/api/auth/google/callback`;
+const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
+const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
+
 const buildOrderConfirmationMessage = (name: string, orderNumber: string, total: number) =>
   `Hello ${name}, your order ${orderNumber} has been received. Total: ₹${total}. We will reach out shortly to confirm your jewellery selection.`;
 
@@ -196,6 +203,102 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+app.get('/api/auth/google', (_req, res) => {
+  if (!GOOGLE_CLIENT_ID) {
+    return res.status(500).json({ message: 'Google OAuth is not configured.' });
+  }
+
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: GOOGLE_REDIRECT_URI,
+    response_type: 'code',
+    scope: 'openid email profile',
+    access_type: 'offline',
+    prompt: 'consent',
+  });
+
+  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+});
+
+const exchangeGoogleCode = async (code: string) => {
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    throw new Error('Google OAuth is not configured.');
+  }
+
+  const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      code,
+      client_id: GOOGLE_CLIENT_ID,
+      client_secret: GOOGLE_CLIENT_SECRET,
+      redirect_uri: GOOGLE_REDIRECT_URI,
+      grant_type: 'authorization_code',
+    }),
+  });
+
+  if (!tokenResponse.ok) {
+    const errorText = await tokenResponse.text();
+    throw new Error(`Google token exchange failed: ${errorText}`);
+  }
+
+  const tokenData = await tokenResponse.json();
+  const accessToken = tokenData.access_token;
+  if (!accessToken) {
+    throw new Error('Google access token not available');
+  }
+
+  const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const googleUser = await userInfoResponse.json();
+  const email = googleUser.email as string;
+  const name = googleUser.name as string;
+  if (!email) {
+    throw new Error('Unable to read Google user email');
+  }
+
+  let user;
+  try {
+    user = await prisma.user.upsert({
+      where: { email },
+      update: { name: name || undefined },
+      create: { email, name, passwordHash: '' },
+    });
+  } catch (error) {
+    console.error('Google login user upsert failed:', error);
+    user = { id: `google-${Date.now()}`, email, name } as any;
+  }
+
+  return { id: user.id, email: user.email, name: user.name || name || '' };
+};
+
+app.get('/api/auth/google/callback', async (req, res) => {
+  const code = req.query.code as string;
+  if (!code) return res.status(400).send('Missing Google OAuth code');
+
+  try {
+    const clientUrl = CLIENT_BASE_URL.replace(/\/$/, '');
+    return res.redirect(`${clientUrl}/auth/google/callback?code=${encodeURIComponent(code)}`);
+  } catch (error) {
+    console.error('Google callback redirect failed:', error);
+    res.status(500).send(String(error) || 'Google login failed.');
+  }
+});
+
+app.post('/api/auth/google/callback', async (req, res) => {
+  const { code } = req.body as { code?: string };
+  if (!code) return res.status(400).json({ message: 'Missing Google OAuth code' });
+
+  try {
+    const payload = await exchangeGoogleCode(code);
+    res.json(payload);
+  } catch (error) {
+    console.error('Google callback exchange failed:', error);
+    res.status(500).json({ message: String(error) || 'Google login failed.' });
+  }
+});
+
 app.get('/api/featured', async (_req, res) => {
   const products = await safeQuery(
     () => prisma.product.findMany({ where: { isFeatured: true }, include: { images: true }, take: 6, orderBy: { createdAt: 'desc' } }),
@@ -302,7 +405,7 @@ app.post('/api/admin/products', upload.array('images', 6), async (req, res) => {
 });
 
 app.put('/api/admin/products/:id', upload.array('images', 6), async (req, res) => {
-  const productId = req.params.id;
+  const productId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const body = req.body as {
     name?: string;
     price?: number;
@@ -355,7 +458,7 @@ app.put('/api/admin/products/:id', upload.array('images', 6), async (req, res) =
 });
 
 app.delete('/api/admin/products/:id', async (req, res) => {
-  const productId = req.params.id;
+  const productId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   try {
     await prisma.productImage.deleteMany({ where: { productId } });
     await prisma.product.delete({ where: { id: productId } });
@@ -368,6 +471,22 @@ app.delete('/api/admin/products/:id', async (req, res) => {
 app.get('/api/admin/orders', async (_req, res) => {
   const orders = await safeQuery(() => prisma.order.findMany({ take: 10, orderBy: { createdAt: 'desc' } }), fallbackOrders as never[]);
   res.json(orders);
+});
+
+app.get('/api/orders', async (req, res) => {
+  const userEmail = String(req.query.email || '').trim();
+  if (!userEmail) return res.status(400).json({ message: 'Email query parameter is required' });
+
+  try {
+    const orders = await prisma.order.findMany({
+      where: { user: { email: userEmail } },
+      include: { items: { include: { product: true } }, user: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json(orders);
+  } catch (error) {
+    res.status(500).json({ message: 'Unable to load orders', error: String(error) });
+  }
 });
 
 app.post('/api/orders', async (req, res) => {
@@ -432,7 +551,7 @@ app.post('/api/orders', async (req, res) => {
 });
 
 app.post('/api/orders/:id/confirm', async (req, res) => {
-  const orderId = req.params.id;
+  const orderId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   try {
     const order = await prisma.order.update({ where: { id: orderId }, data: { status: 'confirmed' }, include: { user: true, items: { include: { product: true } } } });
 
@@ -446,10 +565,26 @@ app.post('/api/orders/:id/confirm', async (req, res) => {
 });
 
 app.get('/api/orders/:id', async (req, res) => {
-  const orderId = req.params.id;
+  const orderId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   try {
-    const order = await prisma.order.findUnique({ where: { id: orderId }, include: { items: { include: { product: true } }, user: true } });
-    if (!order) return res.status(404).json({ message: 'Order not found' });
+    const order = await prisma.order.findFirst({
+      where: {
+        OR: [
+          { id: orderId },
+          { orderNumber: orderId },
+          { user: { email: orderId } },
+        ],
+      },
+      include: { items: { include: { product: true } }, user: true },
+    });
+
+    if (!order) {
+      const fallback = fallbackOrders.find((item) => item.orderNumber === orderId || item.id === orderId);
+      if (fallback) {
+        return res.json({ ...fallback, items: [], user: { email: 'guest@a2-imitation.com', name: 'Guest' } });
+      }
+      return res.status(404).json({ message: 'Order not found' });
+    }
     res.json(order);
   } catch (error) {
     res.status(500).json({ message: 'Unable to fetch order', error: String(error) });
@@ -471,12 +606,43 @@ app.post('/api/contact/email', async (req, res) => {
 });
 
 app.post('/api/payments/checkout', async (req, res) => {
-  const { orderId, provider, method, amount } = req.body as { orderId: string; provider: string; method: string; amount: number };
-  if (!orderId || !provider || !method || !amount) return res.status(400).json({ message: 'Missing payment fields' });
+  const { orderId, provider, method, amount, items } = req.body as { orderId?: string; provider: string; method: string; amount: number; items?: Array<{ productId: string; quantity: number; price: number }> };
+  if (!provider || !method || !amount) return res.status(400).json({ message: 'Missing payment fields' });
+  const paymentOrderId = orderId || `cart-${Date.now()}`;
+
+  if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
+    return res.status(500).json({ message: 'Razorpay is not configured. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.' });
+  }
+
+  const amountInPaise = Math.round(amount * 100);
+  const orderPayload = {
+    amount: amountInPaise,
+    currency: 'INR',
+    receipt: `receipt_${paymentOrderId}_${Date.now()}`,
+    payment_capture: 1,
+  };
+
   try {
+    const razorpayResponse = await fetch('https://api.razorpay.com/v1/orders', {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString('base64')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(orderPayload),
+    });
+
+    if (!razorpayResponse.ok) {
+      const errorText = await razorpayResponse.text();
+      console.error('Razorpay order creation failed', errorText);
+      return res.status(500).json({ message: 'Unable to create Razorpay order', error: errorText });
+    }
+
+    const razorpayOrder = await razorpayResponse.json();
+
     const payment = await prisma.payment.create({
       data: {
-        orderId,
+        orderId: paymentOrderId,
         userId: '000000000000000000000000',
         provider,
         method,
@@ -485,14 +651,23 @@ app.post('/api/payments/checkout', async (req, res) => {
         status: 'pending',
       },
     });
-    res.json({ payment, checkoutUrl: `https://pay.example.com/${payment.id}` });
+
+    return res.json({
+      orderId: razorpayOrder.id,
+      amount: razorpayOrder.amount,
+      currency: razorpayOrder.currency,
+      keyId: RAZORPAY_KEY_ID,
+      receipt: razorpayOrder.receipt,
+      paymentId: payment.id,
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Unable to create payment', error: String(error) });
+    console.error('Checkout error', error);
+    return res.status(500).json({ message: 'Checkout failed', error: String(error) });
   }
 });
 
 app.post('/api/payments/:id/complete', async (req, res) => {
-  const paymentId = req.params.id;
+  const paymentId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   try {
     const payment = await prisma.payment.update({ where: { id: paymentId }, data: { status: 'completed', transactionId: `txn_${Date.now()}` } });
     res.json(payment);

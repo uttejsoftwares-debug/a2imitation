@@ -1,10 +1,28 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { useAppContext } from '../../app/providers';
 
 export default function WishlistPage() {
-  const { wishlist, removeFromWishlist, addToCart } = useAppContext();
+  const router = useRouter();
+  const [message, setMessage] = useState('');
+  const { wishlist, removeFromWishlist, addToCart, isAuthenticated } = useAppContext();
+
+  if (!isAuthenticated) {
+    return (
+      <main className="min-h-screen bg-[#f6efe8] text-stone-800">
+        <section className="mx-auto max-w-6xl px-6 py-16 lg:px-8">
+          <div className="rounded-[2rem] border border-stone-200 bg-white p-10 text-center shadow-sm">
+            <h1 className="font-display text-4xl font-semibold text-stone-900">Wishlist</h1>
+            <p className="mt-4 text-stone-600">Please sign in to view and save your wishlist.</p>
+            <button onClick={() => router.push('/auth/signin')} className="mt-8 rounded-full bg-[#b68a2c] px-6 py-3 text-white transition hover:bg-[#967034]">Sign in</button>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#f6efe8] text-stone-800">

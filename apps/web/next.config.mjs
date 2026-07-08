@@ -1,10 +1,12 @@
-import type { NextConfig } from 'next';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || '';
 
-const API_BASE = process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-
-const nextConfig: NextConfig = {
+const nextConfig = {
   reactStrictMode: true,
   async rewrites() {
+    if (!API_BASE) {
+      return [];
+    }
+
     return [
       {
         source: '/api/:path*',

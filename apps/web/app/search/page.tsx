@@ -1,14 +1,17 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Product, useAppContext } from '../../app/providers';
 
 export default function SearchPage() {
+  const router = useRouter();
   const [query, setQuery] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { addToCart, addToWishlist, isWishlisted } = useAppContext();
+  const [message, setMessage] = useState('');
+  const { addToCart, addToWishlist, isWishlisted, isAuthenticated } = useAppContext();
 
   useEffect(() => {
     if (!query) return;
@@ -59,8 +62,32 @@ export default function SearchPage() {
               <h2 className="font-display text-xl text-stone-900">{product.name}</h2>
               <p className="mt-2 text-sm text-stone-600">₹{product.price}</p>
               <div className="mt-4 flex flex-wrap gap-3">
-                <button onClick={() => addToCart(product)} className="rounded-full border border-[#b68a2c]/40 bg-white px-4 py-2 text-sm text-[#b68a2c]">Add to cart</button>
-                <button onClick={() => addToWishlist(product)} className="rounded-full border border-stone-200 bg-white px-4 py-2 text-sm text-stone-700">
+                <button
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      setMessage('Please sign in to add items to your cart.');
+                      router.push('/auth/signin');
+                      return;
+                    }
+                    addToCart(product);
+                    setMessage(`${product.name} added to cart.`);
+                  }}
+                  className="rounded-full border border-[#b68a2c]/40 bg-white px-4 py-2 text-sm text-[#b68a2c]"
+                >
+                  Add to cart
+                </button>
+                <button
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      setMessage('Please sign in to save items to wishlist.');
+                      router.push('/auth/signin');
+                      return;
+                    }
+                    addToWishlist(product);
+                    setMessage(`${product.name} added to wishlist.`);
+                  }}
+                  className="rounded-full border border-stone-200 bg-white px-4 py-2 text-sm text-stone-700"
+                >
                   {isWishlisted(product.id) ? 'Wishlisted' : 'Add to wishlist'}
                 </button>
               </div>

@@ -3,23 +3,59 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Heart, Search, ShoppingBag, User, ChevronDown } from 'lucide-react';
-import { useState } from 'react';
+import { Heart, Search, ShoppingBag, User, ChevronDown, LogOut } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useAppContext } from '../app/providers';
 
 const shopMenu = [
-  { label: 'Handmade Collection', href: '/shop?collection=handmade' },
-  { label: 'Instagram Collection', href: '/shop?collection=instagram' },
-  { label: 'Best Sellers', href: '/shop?collection=best-sellers' },
-  { label: 'New Collection', href: '/shop?collection=new-collection' },
-  { label: 'All Collections', href: '/shop' },
+  { label: 'Necklaces', href: '/shop?collection=necklaces' },
+  { label: 'Earrings', href: '/shop?collection=earrings' },
+  { label: 'Bridal Sets', href: '/shop?collection=bridal-sets' },
+  { label: 'Rings', href: '/shop?collection=rings' },
+  { label: 'Bangles', href: '/shop?collection=bangles' },
   { label: 'All Products', href: '/shop?view=all' },
 ];
 
 export function Header() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  const { cartCount, wishlistCount } = useAppContext();
+  const [storedUser, setStoredUser] = useState<{ id: string; name?: string; email: string } | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const { cartCount, wishlistCount, user, isAuthenticated, signOut } = useAppContext();
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const loadUser = () => {
+      try {
+        const saved = window.localStorage.getItem('a2_user');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object' && 'id' in parsed) {
+            setStoredUser(parsed);
+            return;
+          }
+        }
+      } catch {
+        // ignore invalid storage
+      }
+      setStoredUser(null);
+    };
+
+    loadUser();
+    window.addEventListener('storage', loadUser);
+    return () => window.removeEventListener('storage', loadUser);
+  }, []);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      setStoredUser(user);
+    }
+  }, [user]);
 
   return (
     <header className="sticky top-0 z-50 border-b border-stone-200 bg-[#fdf8f1]/95 backdrop-blur-xl">
@@ -50,15 +86,49 @@ export function Header() {
           <Link href="/about" className={pathname === '/about' ? 'font-semibold text-stone-900' : 'hover:text-[#b68a2c]'}>About</Link>
           <Link href="/contact" className={pathname === '/contact' ? 'font-semibold text-stone-900' : 'hover:text-[#b68a2c]'}>Contact</Link>
           <Link href="/track-order" className={pathname === '/track-order' ? 'font-semibold text-stone-900' : 'hover:text-[#b68a2c]'}>Track Order</Link>
+          {isAuthenticated ? <Link href="/orders" className={pathname === '/orders' ? 'font-semibold text-stone-900' : 'hover:text-[#b68a2c]'}>My Orders</Link> : null}
         </nav>
 
         <div className="flex items-center gap-3 text-stone-600">
           <Link href="/search" className="rounded-full border border-stone-200 bg-white p-2 transition hover:border-[#b68a2c] hover:text-[#b68a2c]" aria-label="Search">
             <Search size={18} />
           </Link>
-          <Link href="/auth/signin" className="rounded-full border border-stone-200 bg-white p-2 transition hover:border-[#b68a2c] hover:text-[#b68a2c]" aria-label="Sign In">
-            <User size={18} />
-          </Link>
+          {mounted && (isAuthenticated || storedUser) ? (
+            <>
+              <div className="hidden items-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-2 text-sm text-stone-700 transition hover:border-[#b68a2c] hover:text-[#b68a2c] md:inline-flex">
+                <User size={18} />
+                <span>{user?.name || storedUser?.name ? `Hi, ${user?.name || storedUser?.name}` : 'My Account'}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  signOut();
+                  setStoredUser(null);
+                }}
+                className="rounded-full border border-stone-200 bg-white px-4 py-2 text-sm text-stone-700 transition hover:border-[#b68a2c] hover:text-[#b68a2c] md:inline-flex"
+              >
+                <LogOut size={16} />
+                <span>Sign out</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  signOut();
+                  setStoredUser(null);
+                }}
+                className="inline-flex rounded-full border border-stone-200 bg-white p-2 text-stone-700 transition hover:border-[#b68a2c] hover:text-[#b68a2c] md:hidden"
+                aria-label="Sign out"
+              >
+                <LogOut size={18} />
+              </button>
+            </>
+          ) : (
+            mounted && (
+              <Link href="/auth/signin" className="rounded-full border border-stone-200 bg-white p-2 transition hover:border-[#b68a2c] hover:text-[#b68a2c]" aria-label="Sign In">
+                <User size={18} />
+              </Link>
+            )
+          )}
           <Link href="/wishlist" className="relative rounded-full border border-stone-200 bg-white p-2 transition hover:border-[#b68a2c] hover:text-[#b68a2c]" aria-label="Wishlist">
             <Heart size={18} />
             {wishlistCount > 0 ? <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#b68a2c] px-1.5 text-[0.65rem] font-semibold text-white">{wishlistCount}</span> : null}

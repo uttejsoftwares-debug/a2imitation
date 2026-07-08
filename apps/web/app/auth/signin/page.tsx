@@ -1,12 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAppContext } from '../../providers';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
+  const router = useRouter();
+  const { signIn, isAuthenticated } = useAppContext();
+
+  useEffect(() => {
+    const stored = typeof window !== 'undefined' ? window.localStorage.getItem('a2_user') : null;
+    if (isAuthenticated || stored) {
+      router.replace('/');
+    }
+  }, [isAuthenticated, router]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -16,16 +27,13 @@ export default function SignInPage() {
     }
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      if (!response.ok) {
-        setMessage('Login failed. Please check your credentials.');
+      const response = await signIn(email, password);
+      if (!response.success) {
+        setMessage(response.message);
         return;
       }
-      setMessage('Signed in successfully!');
+      setMessage('Signed in successfully! Redirecting...');
+      setTimeout(() => router.push('/'), 600);
     } catch {
       setMessage('Unable to sign in at the moment.');
     }
@@ -47,7 +55,7 @@ export default function SignInPage() {
             <span className="text-sm uppercase tracking-[0.3em] text-stone-400">or</span>
             <span className="h-px flex-1 bg-stone-200" />
           </div>
-          <button type="button" className="mt-5 flex w-full items-center justify-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-3 text-sm text-stone-700 transition hover:border-[#b68a2c] hover:text-[#b68a2c]">
+          <button type="button" onClick={() => (window.location.href = '/api/auth/google')} className="mt-5 flex w-full items-center justify-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-3 text-sm text-stone-700 transition hover:border-[#b68a2c] hover:text-[#b68a2c]">
             <img src="/google-logo.svg" alt="Google icon" className="h-5 w-5" />
             Continue with Google
           </button>

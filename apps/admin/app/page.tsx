@@ -134,6 +134,14 @@ export default function AdminPage() {
     setSelectedFileImages([]);
   };
 
+  const handleDeleteProduct = async (productId: string) => {
+    if (!confirm('Delete this product?')) return;
+    const response = await fetch(`${API_BASE}/api/admin/products/${productId}`, { method: 'DELETE' });
+    if (response.ok) {
+      await loadDashboard();
+    }
+  };
+
   const handleCreateCategory = async (event: FormEvent) => {
     event.preventDefault();
     const response = await fetch(`${API_BASE}/api/admin/categories`, {

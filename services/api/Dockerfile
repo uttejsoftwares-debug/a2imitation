@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:20-alpine AS base
 WORKDIR /app
 COPY package*.json ./
 COPY apps/web/package*.json ./apps/web/
@@ -7,5 +7,10 @@ COPY packages/shared/package*.json ./packages/shared/
 RUN npm install
 COPY . .
 RUN npx prisma generate --workspace=services/api
+RUN npm run build --workspace=services/api
+
+FROM node:20-alpine AS runtime
+WORKDIR /app
+COPY --from=base /app .
 EXPOSE 4000
-CMD ["sh", "-c", "npx prisma db push --workspace=services/api && npm run dev --workspace=services/api"]
+CMD ["sh", "-c", "npx prisma db push --workspace=services/api && npm run start --workspace=services/api"]

@@ -4,14 +4,16 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, Sparkles, ShieldCheck, Truck, Gem, ShoppingBag, CheckCircle2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAppContext } from './providers';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+const API_BASE = '';
 
 type Category = { id: string; name: string; slug: string };
 type Product = {
   id: string;
   name: string;
-  slug: string;
+  slug?: string;
   price: number;
   description?: string;
   sku?: string;
@@ -22,8 +24,6 @@ type Product = {
   isNew?: boolean;
 };
 
-type CartItem = Product & { quantity: number };
-
 const featuredCollections = [
   { title: 'Royal Bridal', subtitle: 'Statement sets for timeless celebrations', image: 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=800&q=80' },
   { title: 'Festive Glow', subtitle: 'Layered luxury for every occasion', image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=800&q=80' },
@@ -33,11 +33,12 @@ export default function HomePage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [tick, setTick] = useState(0);
-  const [cart, setCart] = useState<CartItem[]>([]);
   const [checkoutMessage, setCheckoutMessage] = useState('');
   const [enquiryMessage, setEnquiryMessage] = useState('');
   const [enquiryForm, setEnquiryForm] = useState({ name: '', email: '', phone: '', message: '' });
   const [checkoutForm, setCheckoutForm] = useState({ name: '', email: '', phone: '' });
+  const { cart, total, addToCart, clearCart, isAuthenticated } = useAppContext();
+  const router = useRouter();
 
   useEffect(() => {
     fetch(`${API_BASE}/api/categories`)
@@ -74,16 +75,13 @@ export default function HomePage() {
     return () => clearInterval(id);
   }, []);
 
-  const total = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.quantity, 0), [cart]);
-
-  const addToCart = (product: Product) => {
-    setCart((current) => {
-      const existing = current.find((item) => item.id === product.id);
-      if (existing) {
-        return current.map((item) => (item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item));
-      }
-      return [...current, { ...product, quantity: 1 }];
-    });
+  const addToCartClick = (product: Product) => {
+    if (!isAuthenticated) {
+      setCheckoutMessage('Please sign in to add items to your cart.');
+      router.push('/auth/signin');
+      return;
+    }
+    addToCart(product);
     setCheckoutMessage(`${product.name} added to your cart.`);
   };
 
@@ -109,6 +107,11 @@ export default function HomePage() {
   };
 
   const handleCheckout = async () => {
+    if (!isAuthenticated) {
+      setCheckoutMessage('Please sign in to place an order.');
+      router.push('/auth/signin');
+      return;
+    }
     if (!checkoutForm.name || !checkoutForm.email || cart.length === 0) {
       setCheckoutMessage('Please add a name, email, and at least one item to place an order.');
       return;
@@ -135,7 +138,7 @@ export default function HomePage() {
       if (payload.whatsappLink) {
         window.open(payload.whatsappLink, '_blank', 'noopener,noreferrer');
         setCheckoutMessage(`Order ready. We will contact you soon on ${checkoutForm.email}.`);
-        setCart([]);
+        clearCart();
       } else {
         setCheckoutMessage('Your order request was submitted.');
       }
@@ -308,7 +311,7 @@ export default function HomePage() {
                       <div className="mt-4 flex items-center justify-between">
                         <span className="text-lg font-semibold text-stone-900">₹{Math.round(product.price || 0)}</span>
                         <div className="flex gap-2">
-                          <button type="button" onClick={() => addToCart(product)} className="rounded-full border border-[#d8b46a]/40 px-3 py-2 text-sm text-[#b68a2c]">Add to cart</button>
+                          <button type="button" onClick={() => addToCartClick(product)} className="rounded-full border border-[#d8b46a]/40 px-3 py-2 text-sm text-[#b68a2c]">Add to cart</button>
                           <button type="button" onClick={() => handleEnquire(product)} className="rounded-full border border-stone-200 px-3 py-2 text-sm text-stone-600">Enquire</button>
                         </div>
                       </div>

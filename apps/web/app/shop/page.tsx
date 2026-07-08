@@ -1,51 +1,69 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Product } from '../providers';
 import { useAppContext } from '../providers';
 
 export default function ShopPage() {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [collections, setCollections] = useState<{ id: string; name: string; slug: string }[]>([]);
-  const [productsRawText, setProductsRawText] = useState('');
   const [filter, setFilter] = useState('all');
   const [sort, setSort] = useState('best-selling');
-  const { addToCart, addToWishlist, isWishlisted } = useAppContext();
+  const [addMessage, setAddMessage] = useState('');
+  const { addToCart, addToWishlist, isWishlisted, isAuthenticated } = useAppContext();
 
   useEffect(() => {
-    const safeFetch = async (url: string) => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const selectedCollection = params.get('collection');
+    const selectedView = params.get('view');
+    if (selectedView === 'all') {
+      setFilter('all');
+    } else if (selectedCollection) {
+      setFilter(selectedCollection);
+    }
+  }, []);
+
+  const handleAddToCart = (product: Product) => {
+    if (!isAuthenticated) {
+      setAddMessage('Please sign in to add items to cart.');
+      window.setTimeout(() => setAddMessage(''), 1800);
+      router.push('/auth/signin');
+      return;
+    }
+    addToCart(product);
+    setAddMessage(`${product.name} added to cart`);
+    window.setTimeout(() => setAddMessage(''), 1800);
+  };
+
+  const handleAddToWishlist = (product: Product) => {
+    if (!isAuthenticated) {
+      setAddMessage('Please sign in to save items to wishlist.');
+      window.setTimeout(() => setAddMessage(''), 1800);
+      router.push('/auth/signin');
+      return;
+    }
+    addToWishlist(product);
+    setAddMessage(`${product.name} added to wishlist`);
+    window.setTimeout(() => setAddMessage(''), 1800);
+  };
+
+  useEffect(() => {
+    const loadProducts = async () => {
       try {
-        const text = await fetch(url).then((r) => r.text());
-        try {
-          const parsed = JSON.parse(text);
-          // If parsed is a string (double-encoded), parse again
-          if (typeof parsed === 'string') return JSON.parse(parsed);
-          return parsed;
-        } catch (err) {
-          // fallback: return as-is
-          return text;
-        }
-      } catch (err) {
-        return null;
+        const [categoriesResponse, productsResponse] = await Promise.all([fetch('/api/categories'), fetch('/api/products')]);
+        const categoriesData = categoriesResponse.ok ? await categoriesResponse.json() : [];
+        const productsData = productsResponse.ok ? await productsResponse.json() : [];
+        setCollections(Array.isArray(categoriesData) ? categoriesData : []);
+        setProducts(Array.isArray(productsData) ? productsData : []);
+      } catch {
+        setCollections([]);
+        setProducts([]);
       }
     };
 
-    safeFetch('/api/categories').then((data) => {
-      if (!data) return setCollections([]);
-      setCollections(Array.isArray(data) ? data : []);
-      console.log('categories loaded', data);
-    });
-
-    safeFetch('/api/products').then((data) => {
-      if (!data) return setProducts([]);
-      setProducts(Array.isArray(data) ? data : []);
-      console.log('products loaded', data);
-    });
-
-    // Also fetch raw text to inspect exact response body (direct backend)
-    fetch('http://localhost:4000/api/products')
-      .then((r) => r.text())
-      .then((t) => setProductsRawText(t))
-      .catch(() => setProductsRawText(''));
+    loadProducts();
   }, []);
 
   const filteredProducts = useMemo(() => {
@@ -97,18 +115,18 @@ export default function ShopPage() {
           </div>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-          {/* DEBUG: show raw products data */}
-          <div className="col-span-full">
-            <div className="mb-4 text-xs text-stone-600">
-              <div className="font-medium">Raw response text:</div>
-              <pre className="whitespace-pre-wrap">{productsRawText || '(empty)'}</pre>
-            </div>
-            <div className="text-xs text-stone-600">
-              <div className="font-medium">Parsed products state:</div>
-              <pre className="whitespace-pre-wrap">{JSON.stringify(products, null, 2)}</pre>
-            </div>
+        {addMessage ? (
+          <div className="mb-6 rounded-[2rem] border border-[#b68a2c]/30 bg-[#fdf0d7] p-5 text-sm font-medium text-[#7b591c] shadow-sm">
+            {addMessage}
           </div>
+        ) : null}
+
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+          {filteredProducts.length === 0 ? (
+            <div className="col-span-full rounded-[2rem] border border-stone-200 bg-[#fff7e8] p-10 text-center text-stone-600">
+              No products found for this filter. Try selecting a different collection.
+            </div>
+          ) : null}
 
           {filteredProducts.map((product) => (
             <div key={product.id} className="rounded-[2rem] border border-stone-200 bg-[#fdf8f1] p-6 shadow-sm">
@@ -118,8 +136,8 @@ export default function ShopPage() {
               <h2 className="font-display text-xl text-stone-900">{product.name}</h2>
               <p className="mt-2 text-sm text-stone-600">₹{product.price}</p>
               <div className="mt-5 flex flex-wrap gap-3">
-                <button onClick={() => addToCart(product)} className="rounded-full border border-[#b68a2c]/40 bg-white px-4 py-2 text-sm text-[#b68a2c]">Add to cart</button>
-                <button onClick={() => addToWishlist(product)} className="rounded-full border border-stone-200 bg-white px-4 py-2 text-sm text-stone-700">
+                <button onClick={() => handleAddToCart(product)} className="rounded-full border border-[#b68a2c]/40 bg-white px-4 py-2 text-sm text-[#b68a2c]">Add to cart</button>
+                <button onClick={() => handleAddToWishlist(product)} className="rounded-full border border-stone-200 bg-white px-4 py-2 text-sm text-stone-700">
                   {isWishlisted(product.id) ? 'Wishlisted' : 'Wishlist'}
                 </button>
               </div>

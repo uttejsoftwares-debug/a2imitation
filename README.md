@@ -19,3 +19,33 @@ A premium, production-ready eCommerce platform for A2 Imitation Jewellery built 
 ```bash
 docker compose up --build
 ```
+
+## Production deployment
+
+Build and run the stack in detached mode:
+
+```bash
+docker compose up -d --build
+```
+
+Then point your browser to `http://<server-ip>`.
+
+## GitHub-based deployment
+
+### Frontend on Vercel
+- Connect the GitHub repo to Vercel
+- Set the root directory to `apps/web`
+- Build command: `npm run build`
+- Output directory: `.next`
+- Add environment variable:
+  - `NEXT_PUBLIC_API_URL=https://your-api-url.com`
+
+### API on Render
+- Connect the repo to Render
+- Use the included `render.yaml`
+- Add the same environment variables as in `.env.example`
+- Set `DATABASE_URL` to your managed Postgres URL
+
+### Domain
+- Point `a2imitation.in` and `www.a2imitation.in` to the host provider
+- Enable HTTPS from the hosting platform

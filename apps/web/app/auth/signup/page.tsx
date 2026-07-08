@@ -1,13 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAppContext } from '../../providers';
 
 export default function SignUpPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [message, setMessage] = useState('');
+
+  const { signUp, isAuthenticated } = useAppContext();
+  const router = useRouter();
+
+  useEffect(() => {
+    const stored = typeof window !== 'undefined' ? window.localStorage.getItem('a2_user') : null;
+    if (isAuthenticated || stored) {
+      router.replace('/');
+    }
+  }, [isAuthenticated, router]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -17,16 +29,13 @@ export default function SignUpPage() {
     }
 
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name }),
-      });
-      if (!response.ok) {
-        setMessage('Registration failed. Please try again.');
+      const response = await signUp(name, email, password);
+      if (!response.success) {
+        setMessage(response.message);
         return;
       }
-      setMessage('Account created! You can now sign in.');
+      setMessage('Account created! Redirecting to sign in...');
+      setTimeout(() => router.push('/auth/signin'), 800);
     } catch {
       setMessage('Unable to sign up at the moment.');
     }

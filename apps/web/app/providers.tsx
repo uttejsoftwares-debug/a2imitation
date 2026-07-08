@@ -19,33 +19,74 @@ export type Product = {
 };
 
 export type CartItem = Product & { quantity: number };
+export type User = { id: string; email: string; name: string };
 
 type AppContextValue = {
   cart: CartItem[];
   wishlist: Product[];
+  user: User | null;
+  isAuthenticated: boolean;
   total: number;
   cartCount: number;
   wishlistCount: number;
-  addToCart: (product: Product) => void;
+  addToCart: (product: Product) => boolean;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
-  addToWishlist: (product: Product) => void;
+  addToWishlist: (product: Product) => boolean;
   removeFromWishlist: (productId: string) => void;
   isWishlisted: (productId: string) => boolean;
+  signIn: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
+  signUp: (name: string, email: string, password: string) => Promise<{ success: boolean; message: string }>;
+  signOut: () => void;
 };
 
 const AppContext = createContext<AppContextValue | undefined>(undefined);
 
 const CART_KEY = 'a2_cart';
 const WISHLIST_KEY = 'a2_wishlist';
+const USER_KEY = 'a2_user';
+
+const getCartKey = (userId?: string) => (userId ? `${CART_KEY}_${userId}` : CART_KEY);
+const getWishlistKey = (userId?: string) => (userId ? `${WISHLIST_KEY}_${userId}` : WISHLIST_KEY);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<Product[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+
+  const loadUserStorage = (currentUser: User) => {
+    if (typeof window === 'undefined') return;
+    try {
+      const storedCart = window.localStorage.getItem(getCartKey(currentUser.id));
+      const storedWishlist = window.localStorage.getItem(getWishlistKey(currentUser.id));
+      setCart(storedCart ? JSON.parse(storedCart) : []);
+      setWishlist(storedWishlist ? JSON.parse(storedWishlist) : []);
+    } catch {
+      setCart([]);
+      setWishlist([]);
+    }
+  };
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    try {
+      const storedUser = window.localStorage.getItem(USER_KEY);
+      if (storedUser) {
+        setUser(JSON.parse(storedUser) as User);
+      }
+    } catch {
+      setUser(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (user) {
+      loadUserStorage(user);
+      return;
+    }
+
     try {
       const storedCart = window.localStorage.getItem(CART_KEY);
       const storedWishlist = window.localStorage.getItem(WISHLIST_KEY);
@@ -55,23 +96,47 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setCart([]);
       setWishlist([]);
     }
-  }, []);
+  }, [user]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || user) return;
+    try {
+      const storedUser = window.localStorage.getItem(USER_KEY);
+      if (storedUser) {
+        setUser(JSON.parse(storedUser) as User);
+      }
+    } catch {
+      // ignore invalid stored user
+    }
+  }, [user]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    window.localStorage.setItem(CART_KEY, JSON.stringify(cart));
-  }, [cart]);
+    const key = getCartKey(user?.id);
+    window.localStorage.setItem(key, JSON.stringify(cart));
+  }, [cart, user]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    window.localStorage.setItem(WISHLIST_KEY, JSON.stringify(wishlist));
-  }, [wishlist]);
+    const key = getWishlistKey(user?.id);
+    window.localStorage.setItem(key, JSON.stringify(wishlist));
+  }, [wishlist, user]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (user) {
+      window.localStorage.setItem(USER_KEY, JSON.stringify(user));
+    } else {
+      window.localStorage.removeItem(USER_KEY);
+    }
+  }, [user]);
 
   const total = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.quantity, 0), [cart]);
   const cartCount = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
   const wishlistCount = wishlist.length;
 
   const addToCart = (product: Product) => {
+    if (!user) return false;
     setCart((current) => {
       const existing = current.find((item) => item.id === product.id);
       if (existing) {
@@ -79,6 +144,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       return [...current, { ...product, quantity: 1 }];
     });
+    return true;
   };
 
   const removeFromCart = (productId: string) => {
@@ -96,10 +162,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const clearCart = () => setCart([]);
 
   const addToWishlist = (product: Product) => {
+    if (!user) return false;
     setWishlist((current) => {
       if (current.some((item) => item.id === product.id)) return current;
       return [...current, product];
     });
+    return true;
   };
 
   const removeFromWishlist = (productId: string) => {
@@ -108,11 +176,68 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const isWishlisted = (productId: string) => wishlist.some((item) => item.id === productId);
 
+  const signIn = async (email: string, password: string) => {
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        return { success: false, message: data?.message || 'Unable to sign in' };
+      }
+      const signedInUser = { id: data.id, email: data.email, name: data.name || '' };
+      setUser(signedInUser);
+      loadUserStorage(signedInUser);
+      return { success: true, message: 'Signed in successfully' };
+    } catch {
+      return { success: false, message: 'Unable to sign in at the moment' };
+    }
+  };
+
+  const signUp = async (name: string, email: string, password: string) => {
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        return { success: false, message: data?.message || 'Unable to create account' };
+      }
+      const signedUpUser = { id: data.id, email: data.email, name: data.name || name };
+      setUser(signedUpUser);
+      loadUserStorage(signedUpUser);
+      return { success: true, message: 'Account created successfully' };
+    } catch {
+      return { success: false, message: 'Unable to register at the moment' };
+    }
+  };
+
+  const signOut = () => {
+    if (typeof window !== 'undefined') {
+      if (user) {
+        window.localStorage.removeItem(getCartKey(user.id));
+        window.localStorage.removeItem(getWishlistKey(user.id));
+      }
+      window.localStorage.removeItem(USER_KEY);
+      window.localStorage.removeItem(CART_KEY);
+      window.localStorage.removeItem(WISHLIST_KEY);
+    }
+    setUser(null);
+    setCart([]);
+    setWishlist([]);
+  };
+
   return (
     <AppContext.Provider
       value={{
         cart,
         wishlist,
+        user,
+        isAuthenticated: Boolean(user),
         total,
         cartCount,
         wishlistCount,
@@ -123,6 +248,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         addToWishlist,
         removeFromWishlist,
         isWishlisted,
+        signIn,
+        signUp,
+        signOut,
       }}
     >
       {children}
