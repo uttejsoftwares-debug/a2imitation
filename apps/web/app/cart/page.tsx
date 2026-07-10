@@ -97,7 +97,7 @@ export default function CartPage() {
         key: payload.keyId,
         amount: payload.amount,
         currency: payload.currency,
-        name: 'A2 Imitation Jewellery',
+        name: 'A2 Imitation',
         description: 'Order payment',
         order_id: payload.orderId,
         handler: (response: any) => {

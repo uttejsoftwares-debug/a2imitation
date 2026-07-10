@@ -8,6 +8,7 @@ import fs from 'fs';
 import multer from 'multer';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { buildFallbackProductResponse } from './adminProductResponse.js';
 
@@ -71,6 +72,9 @@ const CLIENT_BASE_URL = process.env.CLIENT_BASE_URL || 'http://localhost:3000';
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || `${CLIENT_BASE_URL}/api/auth/google/callback`;
 const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || 'a2-admin-secret';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@a2-imitation.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
 const buildOrderConfirmationMessage = (name: string, orderNumber: string, total: number) =>
   `Hello ${name}, your order ${orderNumber} has been received. Total: ₹${total}. We will reach out shortly to confirm your jewellery selection.`;
@@ -125,6 +129,24 @@ app.use(express.json());
 app.use(morgan('dev'));
 app.use(compression());
 app.use('/uploads', express.static(uploadsDir));
+
+const verifyAdminToken = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const authHeader = String(req.headers.authorization || '');
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!token) {
+    return res.status(401).json({ message: 'Missing admin authorization token' });
+  }
+
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as { role: string; email: string };
+    if (payload.role !== 'admin' || payload.email !== ADMIN_EMAIL) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: 'Invalid or expired token' });
+  }
+};
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'a2-api' });
@@ -190,6 +212,7 @@ app.post('/api/auth/login', async (req, res) => {
     if (user && user.passwordHash === password) {
       return res.json({ id: user.id, email: user.email, name: user.name || '' });
     }
+
     return res.status(401).json({ message: 'Invalid credentials' });
   } catch (error) {
     // Fallback demo login when DB not available
@@ -202,6 +225,19 @@ app.post('/api/auth/login', async (req, res) => {
 
     return res.status(500).json({ message: 'Login failed', error: String(error) });
   }
+});
+
+app.post('/api/admin/login', async (req, res) => {
+  const { email, password } = req.body as { email?: string; password?: string };
+  if (!email || !password) return res.status(400).json({ message: 'Email and password required' });
+
+  const isAdminUser = email === ADMIN_EMAIL && password === ADMIN_PASSWORD;
+  if (!isAdminUser) {
+    return res.status(401).json({ message: 'Invalid admin credentials' });
+  }
+
+  const token = jwt.sign({ email, role: 'admin' }, JWT_SECRET, { expiresIn: '12h' });
+  res.json({ token, email, role: 'admin' });
 });
 
 app.get('/api/auth/google', (_req, res) => {

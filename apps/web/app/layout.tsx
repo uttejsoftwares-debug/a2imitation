@@ -14,7 +14,7 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: 'A2 Imitation Jewellery',
+  title: 'A2 Imitation',
   description: 'Luxury imitation jewellery crafted for celebration.',
 };
 

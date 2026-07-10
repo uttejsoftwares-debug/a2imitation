@@ -10,7 +10,7 @@ export default function AboutPage() {
           <div className="rounded-[2rem] border border-stone-200 bg-white p-10 shadow-sm">
             <h2 className="font-display text-2xl text-stone-900">Who we are</h2>
             <p className="mt-4 text-stone-600">
-              We are A2 Imitation Jewellery, inspired by celebration and crafted to make every moment feel special. Our collections blend traditional techniques with contemporary style.
+              We are A2 Imitation, inspired by celebration and crafted to make every moment feel special. Our collections blend traditional techniques with contemporary style.
             </p>
           </div>
           <div className="rounded-[2rem] border border-stone-200 bg-white p-10 shadow-sm">

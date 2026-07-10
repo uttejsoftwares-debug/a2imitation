@@ -1,6 +1,7 @@
 'use client';
 
 import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 type DashboardData = {
   stats: {
@@ -20,6 +21,7 @@ type Tab = 'dashboard' | 'products' | 'categories' | 'orders';
 type EditingProduct = { id: string; name: string; sku: string; price: number; stock: number; categoryName: string; description: string; imageDataUrls?: string[] } | null;
 
 export default function AdminPage() {
+  const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
@@ -36,18 +38,54 @@ export default function AdminPage() {
   const [editingProduct, setEditingProduct] = useState<EditingProduct>(null);
   const [categoryForm, setCategoryForm] = useState({ name: '', slug: '' });
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [adminToken, setAdminToken] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  const authFetch = async (path: string, options: RequestInit = {}) => {
+    if (!adminToken) throw new Error('Missing admin token');
+    const headers = new Headers(options.headers as HeadersInit);
+    if (!(options.body instanceof FormData)) {
+      headers.set('Content-Type', 'application/json');
+    }
+    headers.set('Authorization', `Bearer ${adminToken}`);
+
+    const response = await fetch(path, { ...options, headers });
+    if (response.status === 401 || response.status === 403) {
+      localStorage.removeItem('a2-admin-token');
+      router.replace('/login');
+    }
+    return response;
+  };
 
   const loadDashboard = async () => {
     setLoading(true);
-    const response = await fetch(`${API_BASE}/api/admin/dashboard`);
+    const response = await authFetch(`${API_BASE}/api/admin/dashboard`);
     const payload = await response.json();
     setData(payload);
     setLoading(false);
   };
 
   useEffect(() => {
-    loadDashboard();
-  }, []);
+    const token = localStorage.getItem('a2-admin-token');
+    if (!token) {
+      router.replace('/login');
+    } else {
+      setAdminToken(token);
+    }
+    setAuthChecked(true);
+  }, [router]);
+
+  useEffect(() => {
+    if (adminToken) {
+      loadDashboard();
+    }
+  }, [adminToken]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('a2-admin-token');
+    setAdminToken(null);
+    router.replace('/login');
+  };
 
   const handleImageSelection = async (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -82,7 +120,7 @@ export default function AdminPage() {
     selectedFileImages.forEach((file) => formData.append('images', file));
 
     if (editingProduct) {
-      const response = await fetch(`${API_BASE}/api/admin/products/${editingProduct.id}`, {
+      const response = await authFetch(`${API_BASE}/api/admin/products/${editingProduct.id}`, {
         method: 'PUT',
         body: formData,
       });
@@ -94,7 +132,7 @@ export default function AdminPage() {
       return;
     }
 
-    const response = await fetch(`${API_BASE}/api/admin/products`, {
+    const response = await authFetch(`${API_BASE}/api/admin/products`, {
       method: 'POST',
       body: formData,
     });
@@ -136,7 +174,7 @@ export default function AdminPage() {
 
   const handleDeleteProduct = async (productId: string) => {
     if (!confirm('Delete this product?')) return;
-    const response = await fetch(`${API_BASE}/api/admin/products/${productId}`, { method: 'DELETE' });
+    const response = await authFetch(`${API_BASE}/api/admin/products/${productId}`, { method: 'DELETE' });
     if (response.ok) {
       await loadDashboard();
     }
@@ -144,9 +182,8 @@ export default function AdminPage() {
 
   const handleCreateCategory = async (event: FormEvent) => {
     event.preventDefault();
-    const response = await fetch(`${API_BASE}/api/admin/categories`, {
+    const response = await authFetch(`${API_BASE}/api/admin/categories`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: categoryForm.name,
         slug: categoryForm.slug || categoryForm.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
@@ -160,7 +197,7 @@ export default function AdminPage() {
 
   const handleDeleteCategory = async (categoryId: string) => {
     if (confirm('Are you sure you want to delete this category?')) {
-      const response = await fetch(`${API_BASE}/api/admin/categories/${categoryId}`, { method: 'DELETE' });
+      const response = await authFetch(`${API_BASE}/api/admin/categories/${categoryId}`, { method: 'DELETE' });
       if (response.ok) {
         await loadDashboard();
       }
@@ -172,9 +209,13 @@ export default function AdminPage() {
 
   const handleConfirmOrder = async (orderId: string) => {
     if (!confirm('Confirm this order?')) return;
-    const response = await fetch(`${API_BASE}/api/orders/${orderId}/confirm`, { method: 'POST' });
+    const response = await authFetch(`${API_BASE}/api/orders/${orderId}/confirm`, { method: 'POST' });
     if (response.ok) await loadDashboard();
   };
+
+  if (!authChecked) {
+    return <main style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0f172a 0%, #111827 100%)', color: '#f8fafc', padding: 24 }}><p>Checking authentication…</p></main>;
+  }
 
   return (
     <main style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0f172a 0%, #111827 100%)', color: '#f8fafc', padding: 24 }}>
@@ -187,8 +228,13 @@ export default function AdminPage() {
               <h1 style={{ margin: '6px 0 0', fontSize: 30 }}>Admin Control Center</h1>
             </div>
           </div>
-          <div style={{ background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.3)', padding: '10px 14px', borderRadius: 999, color: '#fde68a' }}>
-            Live inventory & orders
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <div style={{ background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.3)', padding: '10px 14px', borderRadius: 999, color: '#fde68a' }}>
+              Live inventory & orders
+            </div>
+            <button onClick={handleLogout} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.18)', color: '#f8fafc', padding: '10px 14px', borderRadius: 999, cursor: 'pointer' }}>
+              Logout
+            </button>
           </div>
         </header>
 
