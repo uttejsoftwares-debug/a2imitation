@@ -125,7 +125,7 @@ export default function ShopPage() {
           </div>
         ) : null}
 
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
           {filteredProducts.length === 0 ? (
             <div className="col-span-full rounded-[2rem] border border-stone-200 bg-[#fff7e8] p-10 text-center text-stone-600">
               No products found for this filter. Try selecting a different collection.
@@ -134,7 +134,7 @@ export default function ShopPage() {
 
           {filteredProducts.map((product) => (
             <div key={product.id} className="rounded-[2rem] border border-stone-200 bg-[#fdf8f1] p-6 shadow-sm">
-              <div className="mb-4 overflow-hidden rounded-[1.5rem] bg-[#f6efe8] h-60">
+              <div className="mb-4 overflow-hidden rounded-[1.5rem] bg-[#f6efe8] h-44 sm:h-52 md:h-60 lg:h-72">
                 <img src={product.images?.[0]?.url || 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=800&q=80'} alt={product.name} className="h-full w-full object-cover" />
               </div>
               <h2 className="font-display text-xl text-stone-900">{product.name}</h2>

@@ -201,7 +201,7 @@ export default function HomePage() {
 
           <div className="space-y-4 rounded-[2rem] border border-stone-200 bg-white/80 p-4 shadow-[0_18px_40px_rgba(0,0,0,0.05)]">
             <div className="overflow-hidden rounded-[1.5rem]">
-              <Image src="https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=1200&q=80" alt="Jewellery showcase" width={900} height={1100} className="h-[360px] w-full object-cover" />
+              <Image src="https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=1200&q=80" alt="Jewellery showcase" width={900} height={1100} className="h-56 sm:h-72 md:h-80 lg:h-[360px] w-full object-cover" />
             </div>
             <div className="rounded-[1.25rem] border border-stone-200 bg-[#fdf8f1] p-5">
               <div className="flex items-center justify-between">
@@ -267,7 +267,7 @@ export default function HomePage() {
         <div className="grid gap-6 lg:grid-cols-2">
           {featuredCollections.map((collection) => (
             <div key={collection.title} className="overflow-hidden rounded-[2rem] border border-stone-200 bg-white shadow-sm">
-              <Image src={collection.image} alt={collection.title} width={900} height={700} className="h-72 w-full object-cover" />
+              <Image src={collection.image} alt={collection.title} width={900} height={700} className="h-48 sm:h-64 lg:h-72 w-full object-cover" />
               <div className="p-6">
                 <h3 className="font-display text-2xl text-stone-900">{collection.title}</h3>
                 <p className="mt-2 text-stone-600">{collection.subtitle}</p>
@@ -302,7 +302,7 @@ export default function HomePage() {
                   return (
                     <div key={product.id} className="rounded-[1.5rem] border border-stone-200 bg-white p-4 shadow-sm">
                       <div className="mb-4 overflow-hidden rounded-[1.25rem] bg-[#f6efe8] text-center">
-                        <img src={display} alt={product.name} className="h-48 w-full object-cover" />
+                        <img src={display} alt={product.name} className="h-48 sm:h-56 md:h-64 lg:h-72 w-full object-cover" />
                       </div>
                       <p className="text-sm uppercase tracking-[0.25em] text-[#b68a2c]">{product.isNew ? 'New' : product.isFeatured ? 'Featured' : ''}</p>
                       <h3 className="mt-2 font-display text-xl text-stone-900">{product.name}</h3>
