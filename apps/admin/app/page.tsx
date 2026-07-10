@@ -14,7 +14,7 @@ type DashboardData = {
   orders: Array<{ id: string; orderNumber: string; status: string; total: number }>;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || process.env.API_INTERNAL_URL || 'http://localhost:4000';
 
 type Tab = 'dashboard' | 'products' | 'categories' | 'orders';
 type EditingProduct = { id: string; name: string; sku: string; price: number; stock: number; categoryName: string; description: string; imageDataUrls?: string[] } | null;
