@@ -17,8 +17,9 @@ const app = express();
 const prisma = new PrismaClient();
 const PORT = Number(process.env.PORT || 4000);
 
-const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+const uploadsRoot = process.env.UPLOADS_ROOT || (process.env.VERCEL ? path.join('/tmp', 'uploads') : path.join(process.cwd(), 'public', 'uploads'));
+if (!fs.existsSync(uploadsRoot)) fs.mkdirSync(uploadsRoot, { recursive: true });
+const uploadsDir = uploadsRoot;
 
 const upload = multer({
   storage: multer.diskStorage({
