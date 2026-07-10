@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Product, useAppContext } from '../../app/providers';
@@ -57,8 +58,8 @@ export default function SearchPage() {
         <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {results.map((product) => (
             <div key={product.id} className="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
-              <div className="mb-3 h-52 overflow-hidden rounded-[1.5rem] bg-[#f6efe8]">
-                <img src={product.images?.[0]?.url || 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=800&q=80'} alt={product.name} className="h-full w-full object-cover" />
+              <div className="mb-3 overflow-hidden rounded-[1.5rem] bg-[#f6efe8] aspect-[4/3] w-full relative">
+                <Image src={product.images?.[0]?.url || 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=800&q=80'} alt={product.name} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
               </div>
               <h2 className="font-display text-xl text-stone-900">{product.name}</h2>
               <p className="mt-2 text-sm text-stone-600">₹{product.price}</p>

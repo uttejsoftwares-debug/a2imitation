@@ -3,9 +3,14 @@ import Link from 'next/link';
 import { buildApiUrl } from '../../../lib/api';
 import type { Product } from '../../providers';
 
-type Props = { params: { slug: string } };
+type ProductPageProps = {
+  params?: Promise<{ slug?: string | string[] | undefined }>;
+  searchParams?: Promise<any>;
+};
 
-export default async function ProductPage({ params: { slug } }: Props) {
+export default async function ProductPage({ params }: ProductPageProps) {
+  const resolvedParams = await params;
+  const slug = typeof resolvedParams?.slug === 'string' ? resolvedParams.slug : '';
   const url = buildApiUrl(`/api/products/${encodeURIComponent(slug)}`);
   const res = await fetch(url);
   const product: Product | null = res.ok ? await res.json() : null;
@@ -30,17 +35,20 @@ export default async function ProductPage({ params: { slug } }: Props) {
   return (
     <main className="min-h-screen bg-[#f6efe8] text-stone-800">
       <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8">
-        <div className="grid gap-8 lg:grid-cols-2">
+        <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
           <div className="order-1">
             <div className="overflow-hidden rounded-[1.5rem] bg-white p-4">
-              <Image src={mainImage} alt={product.name} width={900} height={900} className="w-full object-cover rounded-lg" />
+              <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[1.25rem]">
+                <Image src={mainImage} alt={product.name} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+              </div>
             </div>
             {images.length > 1 ? (
-              <div className="mt-4 grid grid-cols-4 gap-2">
+              <div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-6">
                 {images.map((src, idx) => (
                   <div key={idx} className="overflow-hidden rounded-lg">
-                    {/* small thumbnails (non-functional) */}
-                    <Image src={src} alt={`${product.name} ${idx + 1}`} width={200} height={200} className="h-20 w-full object-cover" />
+                    <div className="relative aspect-square w-full">
+                      <Image src={src} alt={`${product.name} ${idx + 1}`} fill className="object-cover" />
+                    </div>
                   </div>
                 ))}
               </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -56,7 +57,7 @@ export default function SignInPage() {
             <span className="h-px flex-1 bg-stone-200" />
           </div>
           <button type="button" onClick={() => (window.location.href = '/api/auth/google')} className="mt-5 flex w-full items-center justify-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-3 text-sm text-stone-700 transition hover:border-[#b68a2c] hover:text-[#b68a2c]">
-            <img src="/google-logo.svg" alt="Google icon" className="h-5 w-5" />
+            <Image src="/google-logo.svg" alt="Google icon" width={20} height={20} className="h-5 w-5" />
             Continue with Google
           </button>
           <p className="mt-6 text-center text-sm text-stone-600">
