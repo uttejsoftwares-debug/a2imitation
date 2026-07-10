@@ -2,6 +2,9 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || '';
 
 const nextConfig = {
   reactStrictMode: true,
+  env: {
+    NEXT_PUBLIC_API_URL: API_BASE || '',
+  },
   async rewrites() {
     if (!API_BASE) {
       return [
