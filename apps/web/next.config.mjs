@@ -4,7 +4,12 @@ const nextConfig = {
   reactStrictMode: true,
   async rewrites() {
     if (!API_BASE) {
-      return [];
+      return [
+        {
+          source: '/api/:path*',
+          destination: '/api/:path*',
+        },
+      ];
     }
 
     return [
