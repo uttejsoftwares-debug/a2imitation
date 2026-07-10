@@ -86,8 +86,8 @@ export default function HomePage() {
 
   const handleEnquire = async (product?: Product) => {
     const message = product
-      ? `Hello A2 Jewellery, I am interested in ${product.name} (${product.sku || 'product'}). Please share more details and pricing.`
-      : 'Hello A2 Jewellery, I would like to enquire about your latest jewellery collection.';
+      ? `Hello A2 Imitation, I am interested in ${product.name} (${product.sku || 'product'}). Please share more details and pricing.`
+      : 'Hello A2 Imitation, I would like to enquire about your latest jewellery collection.';
 
     try {
       const response = await fetch(buildApiUrl('/api/contact/whatsapp'), {

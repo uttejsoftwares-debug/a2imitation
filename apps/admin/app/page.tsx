@@ -224,7 +224,7 @@ export default function AdminPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <img src="/logo.png" alt="A2 logo" style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 999 }} />
             <div>
-              <p style={{ margin: 0, fontSize: 12, letterSpacing: '0.32em', color: '#fbbf24', textTransform: 'uppercase' }}>A2 Jewellery</p>
+              <p style={{ margin: 0, fontSize: 12, letterSpacing: '0.32em', color: '#fbbf24', textTransform: 'uppercase' }}>A2 Imitation</p>
               <h1 style={{ margin: '6px 0 0', fontSize: 30 }}>Admin Control Center</h1>
             </div>
           </div>

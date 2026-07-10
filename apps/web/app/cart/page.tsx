@@ -34,7 +34,7 @@ export default function CartPage() {
     }
 
     const itemLines = cart.map((item) => `${item.quantity}x ${item.name} (₹${item.price})`).join('%0A');
-    const message = `Hello A2 Jewellery, I would like to place an order:%0A${itemLines}%0A%0ATotal: ₹${total}`;
+    const message = `Hello A2 Imitation, I would like to place an order:%0A${itemLines}%0A%0ATotal: ₹${total}`;
 
     try {
       const response = await fetch('/api/contact/whatsapp', {

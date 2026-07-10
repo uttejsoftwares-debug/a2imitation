@@ -81,7 +81,7 @@ const buildOrderConfirmationMessage = (name: string, orderNumber: string, total:
 
 const buildEnquiryMessage = (name: string, email: string, phone: string, productName?: string) => {
   const productText = productName ? ` Interested in ${productName}.` : '';
-  return `Hello A2 Jewellery, I am ${name} (${email}${phone ? `, ${phone}` : ''}).${productText} Please share availability and pricing.`;
+  return `Hello A2 Imitation, I am ${name} (${email}${phone ? `, ${phone}` : ''}).${productText} Please share availability and pricing.`;
 };
 
 const fallbackCategories = [
