@@ -6,8 +6,7 @@ import { ArrowRight, Sparkles, ShieldCheck, Truck, Gem, ShoppingBag, CheckCircle
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from './providers';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://a2imitation-api.onrender.com';
+import { buildApiUrl } from '../lib/api';
 
 type Category = { id: string; name: string; slug: string };
 type Product = {
@@ -41,7 +40,7 @@ export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/categories`)
+    fetch(buildApiUrl('/api/categories'))
       .then((r) => {
         if (!r.ok) throw new Error(`categories failed: ${r.status}`);
         return r.json();
@@ -55,7 +54,7 @@ export default function HomePage() {
         setCategories([]);
       });
 
-    fetch(`${API_BASE}/api/products`)
+    fetch(buildApiUrl('/api/products'))
       .then((r) => {
         if (!r.ok) throw new Error(`products failed: ${r.status}`);
         return r.json();
@@ -91,7 +90,7 @@ export default function HomePage() {
       : 'Hello A2 Jewellery, I would like to enquire about your latest jewellery collection.';
 
     try {
-      const response = await fetch(`${API_BASE}/api/contact/whatsapp`, {
+      const response = await fetch(buildApiUrl('/api/contact/whatsapp'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message }),
@@ -118,7 +117,7 @@ export default function HomePage() {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/api/orders`, {
+      const response = await fetch(buildApiUrl('/api/orders'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -155,7 +154,7 @@ export default function HomePage() {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/api/contact/email`, {
+      const response = await fetch(buildApiUrl('/api/contact/email'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

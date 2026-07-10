@@ -703,6 +703,4 @@ app.delete('/api/admin/categories/:id', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`API running on port ${PORT}`);
-});
+export default app;

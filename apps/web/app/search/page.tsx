@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Product, useAppContext } from '../../app/providers';
+import { buildApiUrl } from '../../lib/api';
 
 export default function SearchPage() {
   const router = useRouter();
@@ -13,8 +14,6 @@ export default function SearchPage() {
   const [message, setMessage] = useState('');
   const { addToCart, addToWishlist, isWishlisted, isAuthenticated } = useAppContext();
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://a2imitation-api.onrender.com';
-
   useEffect(() => {
     if (!query) return;
     setLoading(true);
@@ -22,7 +21,7 @@ export default function SearchPage() {
 
     const timeout = window.setTimeout(async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/products`);
+        const response = await fetch(buildApiUrl('/api/products'));
         if (!response.ok) throw new Error('Unable to load products');
         const data = await response.json();
         const filtered = data.filter((product: Product) =>
