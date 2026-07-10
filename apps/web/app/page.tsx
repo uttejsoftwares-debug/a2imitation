@@ -304,16 +304,18 @@ export default function HomePage() {
                   const imgs: string[] = (product.images || []).map((i: any) => i.url).filter(Boolean);
                   const display = imgs.length ? imgs[tick % imgs.length] : 'https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=800&q=80';
                   return (
-                    <div key={product.id} className="rounded-[1.5rem] border border-stone-200 bg-white p-4 shadow-sm">
-                              <div className="mb-4 overflow-hidden rounded-[1.25rem] bg-[#f6efe8] aspect-[4/5] w-full relative">
-                        <Image src={display} alt={product.name} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
+                    <div key={product.id} className="flex h-full flex-col justify-between rounded-[1.5rem] border border-stone-200 bg-white p-4 shadow-sm">
+                      <div>
+                        <div className="mb-4 overflow-hidden rounded-[1.25rem] bg-[#f6efe8] aspect-square sm:aspect-[4/5] w-full relative">
+                          <Image src={display} alt={product.name} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
+                        </div>
+                        <p className="text-sm uppercase tracking-[0.25em] text-[#b68a2c]">{product.isNew ? 'New' : product.isFeatured ? 'Featured' : ''}</p>
+                        <h3 className="mt-2 font-display text-xl text-stone-900">{product.name}</h3>
+                        <p className="mt-2 text-sm leading-6 text-stone-600">{product.description || 'Crafted for celebrations with a luminous finish.'}</p>
                       </div>
-                      <p className="text-sm uppercase tracking-[0.25em] text-[#b68a2c]">{product.isNew ? 'New' : product.isFeatured ? 'Featured' : ''}</p>
-                      <h3 className="mt-2 font-display text-xl text-stone-900">{product.name}</h3>
-                      <p className="mt-2 text-sm leading-6 text-stone-600">{product.description || 'Crafted for celebrations with a luminous finish.'}</p>
-                      <div className="mt-4 flex items-center justify-between">
+                      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <span className="text-lg font-semibold text-stone-900">₹{Math.round(product.price || 0)}</span>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <button type="button" onClick={() => addToCartClick(product)} className="rounded-full border border-[#d8b46a]/40 px-3 py-2 text-sm text-[#b68a2c]">Add to cart</button>
                           <button type="button" onClick={() => handleEnquire(product)} className="rounded-full border border-stone-200 px-3 py-2 text-sm text-stone-600">Enquire</button>
                         </div>
