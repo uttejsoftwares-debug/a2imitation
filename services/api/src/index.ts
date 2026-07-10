@@ -61,7 +61,7 @@ const sendEmail = async (to: string, subject: string, html: string) => {
 };
 
 const buildWhatsappLink = (message: string) => {
-  const phone = (process.env.WHATSAPP_NUMBER || '919999999999').replace(/[^0-9]/g, '');
+  const phone = (process.env.WHATSAPP_NUMBER || '917435000103').replace(/[^0-9]/g, '');
   const text = encodeURIComponent(message);
   return `https://wa.me/${phone}?text=${text}`;
 };
