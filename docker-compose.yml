@@ -48,6 +48,16 @@ services:
       - api
     restart: always
 
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+    environment:
+      API_INTERNAL_URL: http://api:4000
+    depends_on:
+      - api
+    restart: always
+
   nginx:
     image: nginx:alpine
     ports:
@@ -59,6 +69,7 @@ services:
     depends_on:
       - web
       - api
+      - admin
     restart: always
 
 volumes:

@@ -3,10 +3,11 @@ WORKDIR /app
 COPY package*.json ./
 COPY apps/web/package*.json ./apps/web/
 COPY services/api/package*.json ./services/api/
+COPY services/api/prisma ./services/api/prisma
 COPY packages/shared/package*.json ./packages/shared/
 RUN npm install
 COPY . .
-RUN npx prisma generate --workspace=services/api
+RUN npx prisma generate --schema=./services/api/prisma/schema.prisma
 RUN npm run build --workspace=services/api
 
 FROM node:20-alpine AS runtime
