@@ -46,6 +46,12 @@ Then point your browser to `http://<server-ip>`.
 - Add the same environment variables as in `.env.example`
 - Set `DATABASE_URL` to your managed Postgres URL
 
+### Admin panel on Render
+- Deploy the admin service with the name `a2imitation-admin`
+- Configure a custom domain like `admin.a2imitation.in` for the admin service
+- Set `API_INTERNAL_URL` in Render to point to your API service URL
+
 ### Domain
-- Point `a2imitation.in` and `www.a2imitation.in` to the host provider
+- Point `a2imitation.in` and `www.a2imitation.in` to the host provider for the storefront
+- Point `admin.a2imitation.in` to the admin service if using a separate admin domain
 - Enable HTTPS from the hosting platform
