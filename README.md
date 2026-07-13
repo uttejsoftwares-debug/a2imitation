@@ -51,6 +51,12 @@ Then point your browser to `http://<server-ip>`.
 - Configure a custom domain like `admin.a2imitation.in` for the admin service
 - Set `API_INTERNAL_URL` in Render to point to your API service URL
 
+### Admin panel on Vercel
+- Deploy `apps/admin` as a separate Vercel project
+- Use `apps/admin/vercel.json` for the build settings
+- Set the custom domain to `admin.a2imitation.in`
+- Register the redirect URI in Google Cloud as `https://admin.a2imitation.in/api/auth/google/callback`
+
 ### Domain
 - Point `a2imitation.in` and `www.a2imitation.in` to the host provider for the storefront
 - Point `admin.a2imitation.in` to the admin service if using a separate admin domain
